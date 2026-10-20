@@ -19,6 +19,22 @@ pub const UI_FIELDS: &[(&str, &str, &str)] = &[
     ("__taskBar", "General", "Enable Contextual Task Bar"),
 ];
 
+/// The AI category (desktop builds with AI installed): publik API or the person's own key, drawn by
+/// `crate::ai`. It edits no preference of the dialog: its changes take effect at once.
+const AI_CATEGORY: &str = "AI";
+
+/// The categories the dialog lists: the engine's, then AI where the host installed it.
+fn categories(app: &VectorcraftApp) -> Vec<&'static str> {
+    let mut v = PREF_CATEGORIES.to_vec();
+    #[cfg(not(target_arch = "wasm32"))]
+    if app.ai.is_some() {
+        v.push(AI_CATEGORY);
+    }
+    #[cfg(target_arch = "wasm32")]
+    let _ = app;
+    v
+}
+
 pub fn open(app: &mut VectorcraftApp, category: Option<&str>) {
     // One field per preference key or group (the flattener presets have commands of their own).
     let mut fields: Map<String, Value> = app.session.prefs.to_json().as_object().cloned().unwrap_or_default();
@@ -27,7 +43,8 @@ pub fn open(app: &mut VectorcraftApp, category: Option<&str>) {
     if let Some(st) = app.session.active() {
         fields.insert("unitsGeneral".into(), json!(st.doc.units.key()));
     }
-    let cat = category.and_then(|c| PREF_CATEGORIES.iter().find(|x| x.eq_ignore_ascii_case(c))).copied().unwrap_or(PREF_CATEGORIES[0]);
+    let cats = categories(app);
+    let cat = category.and_then(|c| cats.iter().find(|x| x.eq_ignore_ascii_case(c))).copied().unwrap_or(PREF_CATEGORIES[0]);
     fields.insert("__category".into(), json!(cat));
     fields.insert("__smartGuides".into(), json!(app.ui.view.smart_guides));
     fields.insert("__snapToGrid".into(), json!(app.ui.view.snap_to_grid));
@@ -156,7 +173,8 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
     let t = Tokens::get(ctx);
     let (mut ok, mut cancel, mut reset) = (false, false, false);
     let cat = d.str("__category");
-    let cat = PREF_CATEGORIES.iter().find(|c| **c == cat).copied().unwrap_or(PREF_CATEGORIES[0]);
+    let cats = categories(app);
+    let cat = cats.iter().find(|c| **c == cat).copied().unwrap_or(PREF_CATEGORIES[0]);
     crate::dialogs::modal::show(ctx, tl!("Preferences"), egui::Id::new("dialog-preferences"), -20.0, 20, |ui| {
         ui.set_width(760.0);
         crate::dialogs::modal::heading(ui, tl!("Preferences"));
@@ -168,7 +186,7 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
                 ui.set_min_height(430.0);
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing.y = 1.0;
-                    for c in PREF_CATEGORIES {
+                    for c in &cats {
                         let sel = *c == cat;
                         let text = egui::RichText::new(tl!(*c)).size(12.5).color(if sel { t.text_strong } else { t.text });
                         let b = egui::Button::selectable(sel, text).min_size(egui::vec2(184.0, 24.0));
@@ -185,7 +203,12 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
                 ui.label(egui::RichText::new(tl!(cat)).font(theme::semibold(14.0)).color(t.text_strong));
                 ui.add_space(8.0);
                 egui::ScrollArea::vertical().id_salt(("prefs", cat)).max_height(400.0).auto_shrink([false, false]).show(ui, |ui| {
-                    category_fields(ui, &mut d, cat);
+                    if cat == AI_CATEGORY {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        crate::ai::options_section(app, ui);
+                    } else {
+                        category_fields(ui, &mut d, cat);
+                    }
                 });
             });
         });
@@ -206,12 +229,16 @@ pub fn show(app: &mut VectorcraftApp, ctx: &egui::Context) {
                     cancel = true;
                 }
                 ui.add_space(16.0);
-                let i = PREF_CATEGORIES.iter().position(|c| *c == cat).unwrap_or(0);
-                if ui.add_enabled(i + 1 < PREF_CATEGORIES.len(), egui::Button::new(tl!("Next"))).clicked() {
-                    d.fields.insert("__category".into(), json!(PREF_CATEGORIES[i + 1]));
+                let i = cats.iter().position(|c| *c == cat).unwrap_or(0);
+                if ui.add_enabled(i + 1 < cats.len(), egui::Button::new(tl!("Next"))).clicked()
+                    && let Some(next) = cats.get(i + 1)
+                {
+                    d.fields.insert("__category".into(), json!(next));
                 }
-                if ui.add_enabled(i > 0, egui::Button::new(tl!("Previous"))).clicked() {
-                    d.fields.insert("__category".into(), json!(PREF_CATEGORIES[i - 1]));
+                if ui.add_enabled(i > 0, egui::Button::new(tl!("Previous"))).clicked()
+                    && let Some(previous) = i.checked_sub(1).and_then(|i| cats.get(i))
+                {
+                    d.fields.insert("__category".into(), json!(previous));
                 }
             });
         });

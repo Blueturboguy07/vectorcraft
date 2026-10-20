@@ -13,6 +13,8 @@ macro_rules! tl {
     };
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub mod ai;
 pub mod background;
 mod brand;
 pub mod canvas;
@@ -492,6 +494,10 @@ pub struct VectorcraftApp {
     /// This frame carries input the control channel injected ([`Self::raw_input_hook`]): it runs
     /// confined to [`Self::automation_roots`].
     synthetic_frame: bool,
+    /// AI through publik API or the person's own key (desktop only): `None` until the host installs
+    /// it, and in runs without preferences, where no AI dialog may open unasked.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub ai: Option<ai::Ai>,
 }
 
 /// A window capture asked for through the control channel (`ui.screenshot`), answered once a
@@ -587,6 +593,8 @@ impl VectorcraftApp {
             scrub_group: false,
             automation_roots: None,
             synthetic_frame: false,
+            #[cfg(not(target_arch = "wasm32"))]
+            ai: None,
         }
     }
 
@@ -1225,6 +1233,9 @@ impl VectorcraftApp {
         background::poll(self);
         screen_color::poll(self, ctx);
         opening::poll(self);
+        // AI requests that finished, and the first-launch AI dialog once the window is up.
+        #[cfg(not(target_arch = "wasm32"))]
+        ai::frame(self);
         #[cfg(not(target_arch = "wasm32"))]
         self.tick_link_updates(ctx, now);
         if !self.background.jobs.is_empty() || !self.opening.pending.is_empty() {

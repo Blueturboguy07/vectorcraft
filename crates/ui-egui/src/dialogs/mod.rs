@@ -8,6 +8,7 @@
 
 mod about;
 pub mod action_batch;
+pub mod ai;
 pub mod artboard_options;
 pub mod blend_options;
 mod brush_art_options;
@@ -346,6 +347,8 @@ registry! {
     LayersPanelOptions: [layers_panel_options::KIND] => layers_panel_options::SPEC,
     RearrangeArtboards: [rearrange_artboards::KIND] => rearrange_artboards::SPEC,
     ShortcutImport: [shortcut_import::KIND] => DialogSpec::window(shortcut_import::show, shortcut_import::confirm),
+    AiSetup: [ai::SETUP] => ai::SETUP_SPEC,
+    AiGenerateImage: [ai::GENERATE_IMAGE] => ai::GENERATE_SPEC,
 }
 
 /// The button labels the shared dialog frame can show (OK, discard and the fixed Cancel/Close),
@@ -392,6 +395,10 @@ pub fn cancel(app: &mut VectorcraftApp) {
             let _ = app.session.cancel_interaction();
         }
         app.ui.dialog = parent(&d);
+        // Closing the first-launch AI dialog counts as its Later: it shows once.
+        if d.kind == ai::SETUP {
+            ai::dismissed(app);
+        }
     }
     settle(app);
 }

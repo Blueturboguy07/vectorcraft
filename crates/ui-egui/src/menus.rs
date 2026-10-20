@@ -1026,6 +1026,12 @@ pub const UI_COMMANDS: &[(&str, &str, &str, &str)] = &[
         "",
         "{plane?: left|right|ground (default: the active plane)} open the plane's options, as double-clicking its plane widget does (dialog `perspectivePlane`: location (pt along the plane's normal), objects: none|move|copy): OK runs perspective.plane.move",
     ),
+    (
+        "ui.aiGenerateImage",
+        "Generate Image…",
+        "",
+        "{} open Generate Image (Object › AI › Generate Image…; dialog `aiGenerateImage`; desktop only): a prompt and a shape (Square, Landscape or Portrait) → an image from publik API or your own key, placed with file.place as one embedded image on the artboard in view, centred in the view and fitted to it; Generate and trace then runs imageTrace.make (Default preset) on it. Only the dialog's Generate image and Generate and trace buttons send a request; its OK (ui.dialog.confirm) only closes it. The first launch shows the AI setup (dialog `aiSetup`) once; Preferences › AI changes it",
+    ),
 ];
 
 /// Canonical panel id for `window.panel`: a dock tab's or an icon panel's id or display label,
@@ -1707,6 +1713,7 @@ pub fn run_ui_command(app: &mut VectorcraftApp, id: &str, p: &Value) -> Option<R
         "ui.blendOptions" => crate::dialogs::blend_options::open(app),
         "ui.livePaintGapOptions" => crate::dialogs::live_paint_gaps::open(app),
         "ui.perspectivePlane" => crate::dialogs::perspective_plane::open(app, p),
+        "ui.aiGenerateImage" => crate::dialogs::ai::open(app),
         _ => return None,
     };
     Some(r)
@@ -2315,6 +2322,8 @@ pub fn enabled(app: &VectorcraftApp, id: &str) -> bool {
         "ui.placementOptionsDialog" => selected_image(app, |_| true) || selected_placed(app),
         "ui.findLinksInFolder" => crate::picks::can(app, &crate::picks::PickRequest::Folder) && app.session.active().is_some(),
         "ui.packageDialog" | "docInfo.save" => app.session.active().is_some(),
+        // The web build has no AI.
+        "ui.aiGenerateImage" => cfg!(not(target_arch = "wasm32")) && app.session.active().is_some(),
         "ui.batchDialog" => !app.ui.action_sets.is_empty() && app.ui.action_sets.iter().any(|s| !s.actions.is_empty()),
         "ui.epsOptionsDialog" => app.session.active().is_some(),
         "file.saveForWeb" | "file.saveForWeb.browser" => app.session.active().is_some(),
@@ -2351,6 +2360,15 @@ fn selected_image(app: &VectorcraftApp, keep: impl Fn(&vectorcraft_doc::ImageObj
 /// follow it; tests use the default `true`).
 pub fn menu_tree() -> Vec<(&'static str, Vec<Item>)> {
     menu_tree_named(true)
+}
+
+/// Object › AI: the tools that send a request to publik API or the person's own key. The web build
+/// has none.
+fn ai_menu() -> Vec<Item> {
+    if cfg!(target_arch = "wasm32") {
+        return vec![];
+    }
+    vec![Sep, sub("AI", vec![c("Generate Image…", "ui.aiGenerateImage")])]
 }
 
 pub fn menu_tree_named(english_names: bool) -> Vec<(&'static str, Vec<Item>)> {
@@ -2704,7 +2722,10 @@ pub fn menu_tree_named(english_names: bool) -> Vec<(&'static str, Vec<Item>)> {
                 ),
                 Sep,
                 sub("Plug-ins", crate::dialogs::plugin::object_menu()),
-            ],
+            ]
+            .into_iter()
+            .chain(ai_menu())
+            .collect(),
         ),
         (
             "Type",
