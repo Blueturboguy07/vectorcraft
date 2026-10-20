@@ -25,14 +25,14 @@ const AI_CATEGORY: &str = "AI";
 
 /// The categories the dialog lists: the engine's, then AI where the host installed it.
 fn categories(app: &VectorcraftApp) -> Vec<&'static str> {
-    let mut v = PREF_CATEGORIES.to_vec();
     #[cfg(not(target_arch = "wasm32"))]
-    if app.ai.is_some() {
-        v.push(AI_CATEGORY);
-    }
+    let ai = app.ai.is_some();
     #[cfg(target_arch = "wasm32")]
-    let _ = app;
-    v
+    let ai = {
+        let _ = app;
+        false
+    };
+    PREF_CATEGORIES.iter().copied().chain(ai.then_some(AI_CATEGORY)).collect()
 }
 
 pub fn open(app: &mut VectorcraftApp, category: Option<&str>) {
