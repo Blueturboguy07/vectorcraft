@@ -212,6 +212,20 @@ fn log_dir() -> Option<std::path::PathBuf> {
     Some(prefs_path()?.parent()?.join("logs"))
 }
 
+/// What publik needs to know about this build. The app token is public by design (it can only mint
+/// capped keys attributed to VectorCraft) and lives at the repo root, so source builds carry it.
+/// `ai.json` goes next to the preferences.
+fn app_info() -> vectorcraft_ui_egui::ai::AppInfo {
+    vectorcraft_ui_egui::ai::AppInfo {
+        slug: "vectorcraft",
+        name: "VectorCraft",
+        version: env!("CARGO_PKG_VERSION"),
+        app_token: include_str!("../../../publik-app-token.txt"),
+        dialects: &["images"],
+        config_dir: prefs_path().and_then(|p| Some(p.parent()?.to_path_buf())),
+    }
+}
+
 /// Runs without preferences (`VECTORCRAFT_NO_PREFS`, agents' test runs) neither read nor write them.
 fn prefs_enabled() -> bool {
     std::env::var_os("VECTORCRAFT_NO_PREFS").is_none()
@@ -716,6 +730,12 @@ fn main() -> std::process::ExitCode {
             _ => files.push(a),
         }
     }
+    // Builder check (publikhq.com/skills/setup.md): the built app provisions publik API for real and
+    // prints one line. The builder who runs it is the consent. Before the window, like `--version`.
+    if std::env::var_os("PUBLIK_SELF_TEST").is_some() {
+        let _ = std::io::Write::write_all(&mut std::io::stdout(), format!("{}\n", vectorcraft_ui_egui::ai::self_test(&app_info())).as_bytes());
+        return std::process::ExitCode::SUCCESS;
+    }
     let automation_args::AutomationArgs { read_root, write_root, .. } = roots_args;
     // After the arguments: `--control` and `--version` win over a bad environment value.
     let control_port = match control.port {
@@ -887,6 +907,11 @@ fn main() -> std::process::ExitCode {
                 prefs_dir::attach_plugin_store(&mut session);
                 let mut app = VectorcraftApp::new(session, services(cc.winit_window().cloned(), cc.egui_ctx.clone()));
                 load_prefs(&mut app, saved);
+                // AI through publik API or the person's own key; the first launch asks once. Not in
+                // runs without preferences (agents' test runs), where no dialog may open unasked.
+                if prefs_enabled() {
+                    app.ai = Some(vectorcraft_ui_egui::ai::Ai::new(app_info()));
+                }
                 // The saved PDF presets live in their own folder (also read by vectorcraft-cli),
                 // which takes over from the copy the preferences file used to hold.
                 prefs_dir::attach_pdf_preset_store(&mut app.session);
