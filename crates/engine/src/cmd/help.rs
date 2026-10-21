@@ -7,7 +7,7 @@ use super::*;
 
 /// The app's id on publikhq.com and GitHub.
 pub const APP_ID: &str = "vectorcraft";
-pub const WEBSITE_URL: &str = "https://publikhq.com/adobe";
+pub const WEBSITE_URL: &str = "https://publikhq.com/adobe"; // brand-ok: publik's collection page, not a vendor reference
 
 /// This app's listing on publikhq.com.
 pub fn app_page_url() -> String {
