@@ -3024,7 +3024,7 @@ pub fn menu_tree_named(english_names: bool) -> Vec<(&'static str, Vec<Item>)> {
             vec![
                 c("Join Our Discord", "help.discord"),
                 c("ArtCraft Website", "help.website"),
-                c("VectorCraft on getartcraft.com", "help.appPage"),
+                c("VectorCraft on publikhq.com", "help.appPage"),
                 c("VectorCraft on GitHub", "help.github"),
                 Sep,
                 c("Search Commands…", "help.commandPalette"),
