@@ -9,9 +9,9 @@ use super::*;
 pub const APP_ID: &str = "vectorcraft";
 pub const WEBSITE_URL: &str = "https://publikhq.com/adobe";
 
-/// This app's page on the website.
+/// This app's listing on publikhq.com.
 pub fn app_page_url() -> String {
-    format!("{WEBSITE_URL}/apps/{APP_ID}")
+    format!("https://publikhq.com/{APP_ID}")
 }
 
 /// This app's source repository.
