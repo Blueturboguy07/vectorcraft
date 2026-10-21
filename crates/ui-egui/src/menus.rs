@@ -2375,13 +2375,13 @@ pub fn menu_tree_named(english_names: bool) -> Vec<(&'static str, Vec<Item>)> {
     let panel = |label: &'static str, id: &'static str| cp(label, "window.panel", json!({ "panel": id, "toggle": true }));
     vec![
         (
-            // The application menu: About and Discord only. The in-window bar never shows it (File
+            // The application menu: About only. The in-window bar never shows it (File
             // is first there, as in Illustrator); on macOS `native_menu::mac_layout` composes the
             // App menu from this entry and the other menus (About from Help, Settings from Edit,
             // Quit from File, Language and Appearance synthesized). It stays first: `from_tree`
             // gives the first menu the App role.
             "VectorCraft",
-            vec![c("About VectorCraft", "help.about"), c("Join Our Discord", "help.discord")],
+            vec![c("About VectorCraft", "help.about")],
         ),
         (
             "File",
@@ -3022,7 +3022,6 @@ pub fn menu_tree_named(english_names: bool) -> Vec<(&'static str, Vec<Item>)> {
         (
             "Help",
             vec![
-                c("Join Our Discord", "help.discord"),
                 c("ArtCraft Website", "help.website"),
                 c("VectorCraft on publikhq.com", "help.appPage"),
                 c("VectorCraft on GitHub", "help.github"),
@@ -3624,7 +3623,7 @@ pub fn invoke(app: &mut VectorcraftApp, id: &str, p: Value) {
         return;
     }
     // Help links: the command returns the URL; a menu click opens it (agents just get the URL).
-    if matches!(id, "help.discord" | "help.website" | "help.appPage" | "help.github") {
+    if matches!(id, "help.website" | "help.appPage" | "help.github") {
         app.open_link(id);
         return;
     }

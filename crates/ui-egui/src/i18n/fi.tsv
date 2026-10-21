@@ -34,7 +34,6 @@
 	About VectorCraft	Tietoja VectorCraftista
 	Align to Path	Tasaa polkuun
 	Cut Path at Selected Anchor Points	Leikkaa polku valituista ankkuripisteistä
-	Join Our Discord	Liity Discordiimme
 	Language	Kieli
 	UI Brightness	Käyttöliittymän kirkkaus
 	Dark	Tumma
@@ -3670,9 +3669,6 @@ effect	Regular	Normaali
 	Vector illustration — fast, open, scriptable.	Vektorikuvitusta – nopea, avoin, skriptattava.
 	Welcome to VectorCraft	Tervetuloa VectorCraftiin
 	ArtCraft website	ArtCraftin verkkosivusto
-	Discord	Discord
-	Join our Discord	Liity Discordiimme
-	Join the ArtCraft community on Discord (discord.gg/artcraft)	Liity ArtCraft-yhteisöön Discordissa (discord.gg/artcraft)
 	Source code on GitHub	Lähdekoodi GitHubissa
 	All Tools	Kaikki työkalut
 	Draw	Piirrä
