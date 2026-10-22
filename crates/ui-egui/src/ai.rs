@@ -89,6 +89,11 @@ enum Shape {
 impl Shape {
     const ALL: [Shape; 3] = [Shape::Square, Shape::Landscape, Shape::Portrait];
 
+    /// The shapes a provider can draw: publik API draws 1024x1024 only; a person's own key has all three.
+    fn offered(publik: bool) -> &'static [Shape] {
+        if publik { &Self::ALL[..1] } else { &Self::ALL[..] }
+    }
+
     fn size(self) -> &'static str {
         match self {
             Shape::Square => "1024x1024",
@@ -425,9 +430,13 @@ pub fn generate_image(app: &mut VectorcraftApp, ui: &mut Ui, d: &mut Dialog) -> 
     );
     crate::widgets::take_dialog_focus(ui, edit.id, &ai.prompt);
     ui.add_space(4.0);
+    let shapes = Shape::offered(provider.is_publik());
+    if !shapes.contains(&ai.shape) {
+        ai.shape = Shape::Square;
+    }
     ui.horizontal(|ui| {
         ui.label("Shape:");
-        for s in Shape::ALL {
+        for s in shapes.iter().copied() {
             ui.add_enabled_ui(!busy, |ui| ui.radio_value(&mut ai.shape, s, s.label()));
         }
     });
@@ -484,7 +493,7 @@ pub fn generate_image(app: &mut VectorcraftApp, ui: &mut Ui, d: &mut Dialog) -> 
         ai.note = None;
         ai.error = None;
         let prompt = ai.prompt.trim().to_string();
-        let size = ai.shape.size();
+        let size = if provider.is_publik() { Shape::Square.size() } else { ai.shape.size() };
         let rx = spawn(&ctx, move || client::image_generate(&provider, &prompt, size));
         ai.job = Some((rx, Target { doc, rect, trace }));
     }
@@ -791,5 +800,17 @@ mod tests {
         }
         assert!(shown.iter().any(|t| t.starts_with("Object › AI › Generate Image uses publik API")), "{shown:?}");
         assert!(shown.iter().any(|t| t.starts_with("Your own key")), "the provider's status: {shown:?}");
+    }
+}
+
+#[cfg(test)]
+mod publik_shape_tests {
+    use super::Shape;
+
+    #[test]
+    fn publik_api_offers_square_only() {
+        assert_eq!(Shape::offered(true).len(), 1);
+        assert_eq!(Shape::offered(true)[0].size(), "1024x1024");
+        assert_eq!(Shape::offered(false).len(), 3);
     }
 }
