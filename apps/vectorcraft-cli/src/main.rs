@@ -128,7 +128,19 @@ fn usage() -> String {
     format!("{USAGE}\nReadable formats: .{}\nWritable formats: .{}\n", OPEN_EXTS.join(", ."), export_extensions().join(", ."))
 }
 
+// publik's usage counts. The file is publik's reference client, kept as it is.
+#[rustfmt::skip]
+mod publik_telemetry;
+
+/// The version in publik's usage counts: the release tag without its `v`, for example `0.9.0-publik.5`.
+/// The build number comes from `packaging/PUBLIK_BUILD`, the file the bundle version comes from.
+fn publik_version() -> String {
+    format!("{}-publik.{}", env!("CARGO_PKG_VERSION"), include_str!("../../../packaging/PUBLIK_BUILD").trim())
+}
+
 fn main() -> ExitCode {
+    // publik's usage counts (README: Usage counts). A detached copy of this tool sends them, so the tool never waits.
+    publik_telemetry::start_cli("vectorcraft", &publik_version());
     // Before any font lookup: the fonts font services load (#579).
     #[cfg(all(windows, not(target_vendor = "win7")))]
     system_fonts::install();
