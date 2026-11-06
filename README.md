@@ -353,6 +353,15 @@ And [**ArtCraft**](https://getartcraft.com/) itself, our AI image and video stud
 
 [![Star History Chart](https://api.star-history.com/svg?repos=storytold/vectorcraft&type=Date&legend=top-left)](https://www.star-history.com/?repos=storytold%2Fvectorcraft&type=date&legend=top-left)
 
+## Usage counts
+
+publik's build of VectorCraft sends two anonymous usage events to publik: `app_opened` (one for each launch)
+and `active_session` (every 30 minutes while the app runs). An event holds the app name, the app
+version, the operating system, the CPU type and a random install ID. It holds no file, no file name
+and no prompt. When this computer has a publik API key for VectorCraft, the event carries that key, so publik
+counts the account one time. The `vectorcraft-cli` tool sends nothing. To turn it off, set `DO_NOT_TRACK=1`
+in the environment. Details: https://publikhq.com/skills/telemetry.md
+
 ## License and credits
 
 VectorCraft is dual-licensed under [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
