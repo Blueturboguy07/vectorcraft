@@ -7,8 +7,14 @@
 
 /// VectorCraft as craft-update knows it, with its 128 px icon and accent colour: the update
 /// prompt shows both, and an AppImage's menu entry gets the icon.
+///
+/// publik's build: the update check reads publik's fork, never storytold/vectorcraft, so this
+/// build never downloads or installs a build that is not publik's. publik tags its builds
+/// `vX.Y.Z-publik.N`, which the check skips as pre-releases: it offers nothing, and publik's
+/// launcher updates the app.
 #[cfg(not(target_arch = "wasm32"))]
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
+    repo: "Blueturboguy07/vectorcraft",
     icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.vectorcraft.png")),
     accent: Some([0xe8, 0x57, 0x3f]),
     ..craft_update::suite::VECTORCRAFT
