@@ -7,3 +7,6 @@ plan/
 .DS_Store
 # A craft-fonts checkout for CRAFT_FONTS_DIR (CI and release workflows check it out here)
 /craft-fonts
+
+# The publik app token comes from the build secret PUBLIK_APP_TOKEN; it is never in the repository.
+publik-app-token.txt
