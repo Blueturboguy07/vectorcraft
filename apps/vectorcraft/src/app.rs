@@ -71,6 +71,11 @@ impl eframe::App for App {
         if let Some(on) = self.host_caps_lock.read_transition() {
             self.app.set_caps_lock(on);
         }
+        // Sign in with publik comes first: the gate draws itself until the person is signed in
+        // (and, the first time, has chosen how the app pays for AI). Nothing of the app shows before.
+        if !self.gate.ui(ui) {
+            return;
+        }
         file_access::unconfined(|| self.app.ui(ui));
         // Preferences are written when confirmed, not only at exit: a session ended any other way
         // (the system shutting down, the process ended or crashing) used to lose them (#1747).

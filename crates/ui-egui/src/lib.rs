@@ -28,9 +28,9 @@ macro_rules! tl {
     };
 }
 
+pub mod addons;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod ai;
-pub mod addons;
 pub mod background;
 mod brand;
 pub mod canvas;

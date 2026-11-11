@@ -29,7 +29,7 @@ use crate::state::{Dialog, View};
 
 /// What the AI dialogs and Preferences › AI say in a run without preferences.
 const OFF: &str = "AI is off in this session: VectorCraft runs without preferences (VECTORCRAFT_NO_PREFS).";
-const NEEDS_SETUP: &str = "Generate Image needs AI. Set it up first: publik API (no key to paste) or your own key.";
+const NEEDS_SETUP: &str = "Generate Image needs AI. Set it up first: connect your publik plan (no key to paste) or use your own key.";
 const NO_DOCUMENT: &str = "Open or create a document first. The image goes on its artboard.";
 const STOPPED: &str = "The request stopped unexpectedly. Try again.";
 const PLACED: &str = "The image is on the artboard. Edit › Undo removes it.";
@@ -197,9 +197,12 @@ pub fn frame(app: &mut VectorcraftApp) {
         ai.reopen = true;
     }
     ai.frames = ai.frames.saturating_add(1);
-    // The first launch asks once the window is up (a few frames in). Later ends that for good.
-    if !ai.first_run_checked && ai.frames > 3 {
+    // The first launch asks once the publik gate passed and the window is up (a few frames in):
+    // after "Use my own key" at the gate, the own-key form. Later ends that for good. This crate's
+    // own tests run without a gate, so it counts as passed there.
+    if !ai.first_run_checked && ai.frames > 3 && (cfg!(test) || craft_publik::gate::passed()) {
         ai.first_run_checked = true;
+        ai.state.reload_credential(); // the gate wrote it after this state was created
         ai.setup_due = ai.state.wants_first_run() || ai.state.owes_first_card();
     }
     // An image that could not be placed while its dialog was closed: show it waiting.
@@ -564,7 +567,16 @@ mod tests {
     /// An AI host for tests: no settings folder (nothing is written) and a slug no credential file
     /// has; the own key is a placeholder that no test sends.
     fn ai(own_key: bool) -> Ai {
-        let info = AppInfo { slug: "vectorcraft-ui-test", name: "VectorCraft", version: "0", app_token: "", dialects: &["images"], config_dir: None };
+        let info = AppInfo {
+            slug: "vectorcraft-ui-test",
+            name: "VectorCraft",
+            version: "0",
+            app_token: "",
+            uses_ai: true,
+            endpoints: craft_publik::Endpoints::DEFAULT,
+            dialects: &["images"],
+            config_dir: None,
+        };
         let mut ai = Ai::new(info);
         if own_key {
             ai.state.settings.provider = "own".into();

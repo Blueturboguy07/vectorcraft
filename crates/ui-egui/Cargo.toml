@@ -54,10 +54,10 @@ log = { workspace = true }
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 craft-ui = { workspace = true, features = ["native-windows"] }
 craft-update = { workspace = true }
-# publik API as the zero-setup AI option (or the person's own key): provisioning, the credential
-# file, the calls and the setup flow, shared by the Craft apps. Desktop only: it talks to the
-# network. MIT OR Apache-2.0; its only other dependencies (serde, serde_json, egui) are in the build.
-craft-publik = { git = "https://github.com/Blueturboguy07/craft-publik", rev = "7926858db80b68c988d6c325b5d287cbe74fc831", features = ["egui"] }
+# The publik module (pinned in the root Cargo.toml): publik API as the zero-setup AI option (or
+# the person's own key), the credential file, the calls, and the setup flow. Desktop only: it
+# talks to the network.
+craft-publik = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # `now_ms` (src/lib.rs) reads the page's `performance.now()` with this crate in the web build. It is

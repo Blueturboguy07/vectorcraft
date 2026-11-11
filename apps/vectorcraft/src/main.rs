@@ -49,6 +49,9 @@ mod open_documents;
 mod portal_save;
 mod prefs_dir;
 mod printing;
+// Sign in with publik, usage counting and the AI pay choice: this build's publik facts and the
+// gate every publik app opens with.
+mod publik;
 #[cfg(not(target_os = "macos"))]
 mod single_instance;
 #[cfg(windows)]
@@ -60,9 +63,6 @@ mod window_frame;
 mod windows_cores;
 mod windows_stylus;
 mod xwayland;
-// publik's usage counts (README: Usage counts). The file is publik's reference client, kept as it is.
-#[rustfmt::skip]
-mod publik_telemetry;
 
 use vectorcraft_engine::Session;
 use vectorcraft_engine::cmd::fileio;
@@ -98,6 +98,8 @@ use titlebar::{custom_titlebar, native_options};
 
 struct App {
     app: VectorcraftApp,
+    /// Sign in with publik: drawn before anything of the app until it passes.
+    gate: craft_publik::ui::Gate,
     host_caps_lock: caps_lock::HostCapsLock,
     /// Reported by wgpu when the window's graphics device is lost (a driver reset).
     graphics_loss: GraphicsLoss,
@@ -138,26 +140,6 @@ Options:
 Without a window (converting, scripting, the MCP server), use vectorcraft-cli:
   vectorcraft-cli --help
 ";
-
-/// What publik needs to know about this build. The app token is public by design (it can only mint
-/// capped keys attributed to VectorCraft) and lives at the repo root, so source builds carry it.
-/// `ai.json` goes next to the preferences.
-fn app_info() -> vectorcraft_ui_egui::ai::AppInfo {
-    vectorcraft_ui_egui::ai::AppInfo {
-        slug: "vectorcraft",
-        name: "VectorCraft",
-        version: env!("CARGO_PKG_VERSION"),
-        app_token: include_str!("../../../publik-app-token.txt"),
-        dialects: &["images"],
-        config_dir: prefs_path().and_then(|p| Some(p.parent()?.to_path_buf())),
-    }
-}
-
-/// The version in publik's usage counts: the release tag without its `v`, for example `0.22.0-publik.6`.
-/// The build number comes from `packaging/PUBLIK_BUILD`, the file the bundle version comes from.
-fn publik_version() -> String {
-    format!("{}-publik.{}", env!("CARGO_PKG_VERSION"), include_str!("../../../packaging/PUBLIK_BUILD").trim())
-}
 
 fn main() -> std::process::ExitCode {
     // Windows: the update helper is a copy of this program started with `--finish-update`.
@@ -208,7 +190,7 @@ fn main() -> std::process::ExitCode {
     // Builder check (publikhq.com/skills/setup.md): the built app provisions publik API for real and
     // prints one line. The builder who runs it is the consent. Before the window, like `--version`.
     if std::env::var_os("PUBLIK_SELF_TEST").is_some() {
-        let _ = std::io::Write::write_all(&mut std::io::stdout(), format!("{}\n", vectorcraft_ui_egui::ai::self_test(&app_info())).as_bytes());
+        let _ = std::io::Write::write_all(&mut std::io::stdout(), format!("{}\n", craft_publik::self_test(&publik::app_info())).as_bytes());
         return std::process::ExitCode::SUCCESS;
     }
     let automation_args::AutomationArgs { read_roots, write_roots, .. } = roots_args;
@@ -278,11 +260,11 @@ fn main() -> std::process::ExitCode {
             }
         }
     };
-    // publik's usage counts: `app_opened` now, `active_session` every 30 minutes, on a background
-    // thread. After every early exit above (the update helper, `--version`, `--help`, the
-    // self-test, a bad argument or control port, files handed to the app that already runs, and a
-    // start that a bad automation root stops), so none of them sends anything.
-    publik_telemetry::start("vectorcraft", &publik_version(), None);
+    // publik's usage counts (`app_opened` now, `active_session` every 30 minutes) start once the
+    // gate passed (`publik::app_info`, `craft_publik::ui::Gate`): after every early exit above
+    // (the update helper, `--version`, `--help`, the self-test, a bad argument or control port,
+    // files handed to the app that already runs, and a start that a bad automation root stops),
+    // so none of them sends anything.
     let saved = read_prefs();
     let saved_window = saved.as_ref().and_then(|ui| ui.window);
     #[cfg(feature = "wgpu")]
@@ -429,7 +411,7 @@ fn main() -> std::process::ExitCode {
                 // AI through publik API or the person's own key; the first launch asks once. Not in
                 // runs without preferences (agents' test runs), where no dialog may open unasked.
                 if prefs_enabled() {
-                    app.ai = Some(vectorcraft_ui_egui::ai::Ai::new(app_info()));
+                    app.ai = Some(vectorcraft_ui_egui::ai::Ai::new(publik::app_info()));
                 }
                 // The saved PDF presets live in their own folder (also read by vectorcraft-cli),
                 // which takes over from the copy the preferences file used to hold.
@@ -531,6 +513,8 @@ fn main() -> std::process::ExitCode {
                 Ok(Box::new(App {
                     host_caps_lock: caps_lock::HostCapsLock::new(winit_window.as_deref()),
                     app,
+                    // Sign in with publik: provisioning starts now, on a worker thread; `ui` draws it.
+                    gate: craft_publik::ui::Gate::new(publik::app_info()),
                     graphics_loss,
                     graphics_lost: false,
                     frames: 0,
